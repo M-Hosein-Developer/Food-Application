@@ -1,4 +1,4 @@
-package com.example.room
+package com.example.model
 
 import android.content.Context
 import androidx.room.Room

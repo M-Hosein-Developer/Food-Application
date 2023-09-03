@@ -1,4 +1,4 @@
-package com.example.foodapp
+package com.example.mainScreen
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -9,7 +9,8 @@ import android.widget.RatingBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.room.Food
+import com.example.foodapp.R
+import com.example.model.Food
 
 class FoodAdaper(private val data: ArrayList<Food>, private val foodEvent : FoodEvent) : RecyclerView.Adapter<FoodAdaper.FoodViewHolder>(){
 
@@ -57,7 +58,7 @@ class FoodAdaper(private val data: ArrayList<Food>, private val foodEvent : Food
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FoodViewHolder {
 
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_food , parent , false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_food, parent , false)
 
         return FoodViewHolder(view , parent.context)
     }

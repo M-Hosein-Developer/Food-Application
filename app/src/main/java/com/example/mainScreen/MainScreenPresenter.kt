@@ -1,67 +1,15 @@
-package com.example.foodapp
+package com.example.mainScreen
 
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.core.widget.addTextChangedListener
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.example.foodapp.databinding.ActivityMainBinding
-import com.example.foodapp.databinding.DialogAddNewItemBinding
-import com.example.foodapp.databinding.DialogDeleteItemBinding
-import com.example.room.Database
-import com.example.room.Food
-import com.example.room.FoodDao
+import com.example.model.Food
+import com.example.model.FoodDao
 
-//implement Room
-//Entity
-//Dao
-//create kotlin class for dtatbase
+class MainScreenPresenter(private val foodDao: FoodDao) : MainScreenContract.Presenter{
 
-class MainActivity : AppCompatActivity(), FoodAdaper.FoodEvent {
+    var mainView : MainScreenContract.View? = null
 
-    lateinit var binding: ActivityMainBinding
-    lateinit var myAdapter: FoodAdaper
-    lateinit var foodDao: FoodDao
+    override fun firstRun() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        foodDao = Database.getDatabase(this).foodDao
-
-
-        val sharedPreferences = getSharedPreferences("first", MODE_PRIVATE)
-
-        if (sharedPreferences.getBoolean("firstRun", true)) {
-
-            firstRun()
-            sharedPreferences.edit().putBoolean("firstRun", false).apply()
-
-        }
-
-        showAllData()
-        deleteAllData()
-        addNewFood()
-        search()
-    }
-
-    private fun deleteAllData() {
-
-        binding.btnDeleteAllFood.setOnClickListener {
-
-            foodDao.deleteAllFood()
-            showAllData()
-
-        }
-
-    }
-
-    private fun firstRun() {
-
-        val foodList = arrayListOf<Food>(
+        val firstRunFoodList = arrayListOf<Food>(
 
             Food(
                 txtName = "Pizza",
@@ -155,158 +103,62 @@ class MainActivity : AppCompatActivity(), FoodAdaper.FoodEvent {
             ),
 
             )
-        foodDao.insertAllFood(foodList)
-
-
-    }
-
-    private fun showAllData() {
-
-        val foodData = foodDao.getAllFood()
-
-        myAdapter = FoodAdaper(ArrayList(foodData), this)
-        binding.recyclerMain.adapter = myAdapter
-        binding.recyclerMain.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+        foodDao.insertAllFood(firstRunFoodList)
 
     }
 
-    private fun addNewFood() {
+    override fun onAttach(view: MainScreenContract.View) {
+        mainView = view
 
-        binding.btnAddFood.setOnClickListener {
-
-            val dialog = AlertDialog.Builder(this).create()
-            val dialogBinding = DialogAddNewItemBinding.inflate(layoutInflater)
-            dialog.setView(dialogBinding.root)
-            dialog.setCancelable(true)
-            dialog.show()
-
-            dialogBinding.btnDone.setOnClickListener {
-
-                if (dialogBinding.edtName.length() > 0 && dialogBinding.edtCity.length() > 0 && dialogBinding.edtPrice.length() > 0 && dialogBinding.edtDistance.length() > 0) {
-
-                    val txtName = dialogBinding.edtName.text.toString()
-                    val txtCity = dialogBinding.edtCity.text.toString()
-                    val txtPrice = dialogBinding.edtPrice.text.toString()
-                    val txtDistance = dialogBinding.edtDistance.text.toString()
-
-                    val txtRatingNumber: Int = (1..300).random()
-                    val ratingBarStar: Float = (1..5).random().toFloat()
-
-                    val randomUrlPic = (0 until 10).random()
-                    val urlPic = foodDao.getAllFood()[randomUrlPic].urlImage
-
-
-                    val newFood = Food(
-                        txtName = txtName,
-                        txtPrice = txtPrice,
-                        txtDistance = txtDistance,
-                        txtCity = txtCity,
-                        urlImage = urlPic,
-                        numberRating = txtRatingNumber,
-                        rating = ratingBarStar
-                    )
-
-                    myAdapter.addFood(newFood)
-                    foodDao.insertFood(newFood)
-
-                    binding.recyclerMain.scrollToPosition(0)
-
-                    dialog.dismiss()
-
-
-                } else {
-                    Toast.makeText(this, "Complete the fields", Toast.LENGTH_SHORT).show()
-                }
-
-            }
-
-        }
+        val data = foodDao.getAllFood()
+        mainView!!.showFood(data)
     }
 
-    private fun search() {
-
-        binding.rdtSearch.addTextChangedListener {
-            if (it!!.length > 0) {
-
-                val searchData = foodDao.searchFood(it.toString())
-                myAdapter.setData(ArrayList(searchData))
-
-            } else {
-                val data = foodDao.getAllFood()
-                myAdapter.setData(ArrayList(data))
-            }
-        }
+    override fun onDetach() {
+        mainView = null
     }
 
-    override fun onFoodClicked(food: Food, position: Int) {
+    override fun onSearchFood(filter: String) {
 
-        val dialog = AlertDialog.Builder(this).create()
-        val updateItemBinding = DialogAddNewItemBinding.inflate(layoutInflater)
-        dialog.setView(updateItemBinding.root)
-        dialog.setCancelable(true)
-        dialog.show()
+        if (filter.isNotEmpty()){
 
-        updateItemBinding.edtName.setText(food.txtName)
-        updateItemBinding.edtCity.setText(food.txtCity)
-        updateItemBinding.edtPrice.setText(food.txtPrice)
-        updateItemBinding.edtDistance.setText(food.txtDistance)
+            val dataToShow = foodDao.searchFood(filter)
+            mainView!!.refreshFood(dataToShow)
 
+        }else{
 
+            val dataToShow = foodDao.getAllFood()
+            mainView!!.refreshFood(dataToShow)
 
-        updateItemBinding.btnDone.setOnClickListener {
-
-            if (updateItemBinding.edtName.length() > 0 && updateItemBinding.edtCity.length() > 0 && updateItemBinding.edtPrice.length() > 0 && updateItemBinding.edtDistance.length() > 0) {
-
-                val txtName = updateItemBinding.edtName.text.toString()
-                val txtCity = updateItemBinding.edtCity.text.toString()
-                val txtPrice = updateItemBinding.edtPrice.text.toString()
-                val txtDistance = updateItemBinding.edtDistance.text.toString()
-
-                val newFood = Food(
-                    id = food.id,
-                    txtName = txtName,
-                    txtPrice = txtPrice,
-                    txtDistance = txtDistance,
-                    txtCity = txtCity,
-                    urlImage = food.urlImage,
-                    numberRating = food.numberRating,
-                    rating = food.rating
-                )
-
-                //حتما باید ایدی رو داشته باشیم
-                //data Update
-                foodDao.updateFood(newFood)
-                myAdapter.updateFood(newFood, position)
-                dialog.dismiss()
-
-            } else {
-                Toast.makeText(this, "Complete the fields", Toast.LENGTH_SHORT).show()
-            }
         }
 
-
-}
-
-    override fun onFoodLongClicked(food: Food, position: Int) {
-
-        val dialog = AlertDialog.Builder(this).create()
-        val dialogDeleteItemBinding = DialogDeleteItemBinding.inflate(layoutInflater)
-        dialog.setView(dialogDeleteItemBinding.root)
-        dialog.setCancelable(true)
-        dialog.show()
-
-        dialogDeleteItemBinding.btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialogDeleteItemBinding.btnSure.setOnClickListener {
-
-            myAdapter.removeFood(food, position)
-            foodDao.deleteFood(food)
-            dialog.dismiss()
-        }
     }
 
+    override fun onAddNewFoodClicked(food: Food) {
 
+        foodDao.insertOrUpdate(food)
+        mainView!!.addNewFood(food)
 
+    }
+
+    override fun onDeleteAllClicked() {
+
+        foodDao.deleteAllFood()
+        mainView!!.refreshFood(foodDao.getAllFood())
+
+    }
+
+    override fun onUpdateFood(food: Food, pos: Int) {
+
+        foodDao.insertOrUpdate(food)
+        mainView!!.updateFood(food , pos)
+
+    }
+
+    override fun onDeleteFood(food: Food, pos: Int) {
+
+        foodDao.deleteFood(food)
+        mainView!!.deleteFood(food , pos)
+
+    }
 }
